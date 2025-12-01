@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class NewsServiceTest {
 
     @Test
-    void sampleTest() {
+    void simpleTest() {
         assertEquals(5, 2 + 3);
     }
 }

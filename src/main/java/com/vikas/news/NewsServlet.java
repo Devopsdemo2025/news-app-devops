@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -46,7 +47,11 @@ public class NewsServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {
 
-        URL url = new URL(baseUrl + apiKey);
+        String today = LocalDate.now().toString(); // YYYY-MM-DD
+
+        String finalUrl = baseUrl + apiKey + "&from=" + today + "&to=" + today + "&sortBy=publishedAt";
+
+        URL url = new URL(finalUrl);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
 
@@ -64,11 +69,12 @@ public class NewsServlet extends HttpServlet {
         List<String> headlines = new ArrayList<>();
 
         for (int i = 0; i < Math.min(10, articles.length()); i++) {
-            String title = articles.getJSONObject(i).getString("title");
-            headlines.add(title);
+            headlines.add(articles.getJSONObject(i).getString("title"));
         }
 
+        req.setAttribute("date", today);
         req.setAttribute("headlines", headlines);
+
         req.getRequestDispatcher("/index.jsp").forward(req, resp);
     }
 }
