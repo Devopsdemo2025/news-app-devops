@@ -1,3 +1,5 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,11 +10,7 @@
           rel="stylesheet">
 
     <style>
-        body {
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            color: white;
-            font-family: Arial, sans-serif;
-        }
+        body { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; }
         .card {
             backdrop-filter: blur(8px);
             background: rgba(255,255,255,.08);
@@ -20,22 +18,12 @@
             transition: .3s;
         }
         .card:hover { transform: scale(1.03); }
-
-        .category-btn {
-            margin-right: 8px;
-            margin-bottom: 8px;
-        }
-
+        .category-btn { margin-right: 8px; margin-bottom: 8px; }
         .chip {
-            padding: 5px 12px;
-            background: #475569;
-            border-radius: 20px;
-            margin-right: 6px;
-            cursor: pointer;
-            transition: .2s;
+            padding: 5px 12px; background: #475569; border-radius: 20px;
+            margin-right: 6px; cursor: pointer; transition: .2s;
         }
         .chip:hover { background: #64748b; }
-
         #loading { display: none; color: #f87171; }
     </style>
 
@@ -50,8 +38,10 @@
 
             $("loading").style.display = "block";
 
-            const url = "/news-data?q=" + encodeURIComponent(query) +
-                        "&page=" + page + "&pageSize=10";
+            const url =
+                "${pageContext.request.contextPath}/news-data?q=" +
+                encodeURIComponent(query) +
+                "&page=" + page;
 
             fetch(url)
                 .then(r => r.json())
@@ -60,9 +50,9 @@
                     j.articles.forEach(a => addCard(a));
                     page++;
                 })
-                .catch(e => {
+                .catch(() => {
+                    $("loading").innerText = "Failed to load news!";
                     $("loading").style.display = "block";
-                    $("loading").innerText = "Could not load news.";
                 });
         }
 
@@ -70,20 +60,20 @@
             const div = document.createElement("div");
             div.className = "col-md-6 mb-3";
 
-            let img = "";
-            if (a.urlToImage) {
-                img = `<img src="${a.urlToImage}" class="img-fluid rounded-top" 
-                        onerror="this.style.display='none'">`;
-            }
+            const img = a.urlToImage
+                ? `<img src="${a.urlToImage}" class="img-fluid rounded-top"
+                    onerror="this.style.display='none'">`
+                : "";
 
             div.innerHTML = `
-            <div class="card p-3">
-                ${img}
-                <h5 class="mt-3">${a.title || ""}</h5>
-                <p>${a.description || ""}</p>
-                <a href="${a.url}" class="btn btn-primary btn-sm" target="_blank">Read More</a>
-            </div>
+                <div class="card p-3">
+                    ${img}
+                    <h5 class="mt-3">${a.title || ""}</h5>
+                    <p>${a.description || ""}</p>
+                    <a href="${a.url}" class="btn btn-primary btn-sm" target="_blank">Read More</a>
+                </div>
             `;
+
             $("news").appendChild(div);
         }
 
@@ -105,9 +95,7 @@
             fetchNews(true);
         }
 
-        window.onload = function(){
-            fetchNews(true);
-        };
+        window.onload = function(){ fetchNews(true); };
     </script>
 
 </head>
@@ -117,13 +105,11 @@
 
     <h2 class="mb-4 text-center">📰 Feature 2 News App</h2>
 
-    <!-- Search -->
     <form onsubmit="searchNews(event)" class="input-group mb-3">
         <input id="search" class="form-control" placeholder="Search news...">
         <button class="btn btn-primary">Search</button>
     </form>
 
-    <!-- Categories -->
     <div class="mb-3">
         <button class="btn btn-outline-light category-btn" onclick="setCategory('india')">India</button>
         <button class="btn btn-outline-light category-btn" onclick="setCategory('technology')">Technology</button>
@@ -132,7 +118,6 @@
         <button class="btn btn-outline-light category-btn" onclick="setCategory('health')">Health</button>
     </div>
 
-    <!-- Trending Chips -->
     <div class="mb-4">
         <span class="chip" onclick="setChip('Cricket')">Cricket</span>
         <span class="chip" onclick="setChip('AI')">AI</span>

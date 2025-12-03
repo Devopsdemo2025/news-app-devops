@@ -6,7 +6,7 @@ import org.json.*;
 
 import java.io.*;
 import java.net.*;
-import java.util.Properties;
+import java.util.*;
 
 public class NewsServlet extends HttpServlet {
 
@@ -31,7 +31,6 @@ public class NewsServlet extends HttpServlet {
     }
 
     private JSONObject fetchNews(String q, int page, int pageSize) throws IOException {
-
         String urlStr =
                 "https://newsapi.org/v2/top-headlines?" +
                 "country=in" +
@@ -61,21 +60,24 @@ public class NewsServlet extends HttpServlet {
 
         String servletPath = req.getServletPath();
 
-        // AJAX call → returns JSON
+        // JSON API endpoint
         if ("/news-data".equals(servletPath)) {
-
             String q = req.getParameter("q");
             if (q == null || q.isBlank()) q = "latest";
 
-            int page = Integer.parseInt(req.getParameter("page") == null ? "1" : req.getParameter("page"));
-            int pageSize = 10;
+            int page = Integer.parseInt(
+                    req.getParameter("page") == null ? "1" : req.getParameter("page")
+            );
 
             try {
-                JSONObject result = fetchNews(q, page, pageSize);
+                JSONObject result = fetchNews(q, page, 10);
+
                 JSONObject out = new JSONObject();
                 out.put("status", "ok");
                 out.put("articles", result.optJSONArray("articles"));
+
                 writeJson(resp, out);
+
             } catch (Exception e) {
                 JSONObject out = new JSONObject();
                 out.put("status", "error");
@@ -87,7 +89,7 @@ public class NewsServlet extends HttpServlet {
             return;
         }
 
-        // Normal JSP load
+        // For normal page load
         req.getRequestDispatcher("/index.jsp").forward(req, resp);
     }
 
