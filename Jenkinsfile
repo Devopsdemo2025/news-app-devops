@@ -1,94 +1,85 @@
 pipeline {
-    agent any
-
+    agent { label 'java1.9' }
     stages {
-
-        stage('Check & Install Java') {
+        stage('News-App-Checkout') {
             steps {
-                sh '''
-                    echo "=== Checking Java ==="
-                    if java -version >/dev/null 2>&1; then
-                        echo "Java already installed"
-                        java -version
-                    else
-                        echo "Installing Java 17..."
-                        sudo apt update -y
-                        sudo apt install -y openjdk-17-jdk
-                        java -version
-                    fi
-                '''
+                sh 'rm -rf news-app-devops' 
+                sh 'git clone https://github.com/Devopsdemo2025/news-app-devops.git'
+                echo "git clone completed"
             }
         }
-
-        stage('Check & Install Maven') {
+        stage('Build') { 
             steps {
-                sh '''
-                    echo "=== Checking Maven ==="
-                    if mvn -version >/dev/null 2>&1; then
-                        echo "Maven already installed"
-                        mvn -version
-                    else
-                        echo "Installing Maven..."
-                        sudo apt install -y maven
-                        mvn -version
-                    fi
-                '''
+                sh 'mvn clean package'
             }
         }
-
-        stage('Check & Install Tomcat 10') {
+        stage('Test') {
             steps {
-                sh '''
-                    echo "=== Checking Tomcat ==="
-                    if [ -d "/opt/tomcat10" ]; then
-                        echo "Tomcat already installed in /opt/tomcat10"
-                    else
-                        echo "Installing Tomcat 10..."
-                        cd /opt
-                        sudo wget https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.30/bin/apache-tomcat-10.1.30.tar.gz
-                        sudo tar -xzf apache-tomcat-10.1.30.tar.gz
-                        sudo mv apache-tomcat-10.1.30 tomcat10
-                        sudo chmod +x /opt/tomcat10/bin/*.sh
-                    fi
-                '''
+                sh 'mvn test'
             }
         }
-
-        stage('Build WAR File') {
+        stage('Version-Build') {
             steps {
-                sh '''
-                    echo "=== Building WAR ==="
-                    mvn clean package -DskipTests
-                '''
+                script {
+                    // Example: version = 1.0.<BUILD_NUMBER>
+                    def version = "1.0.${env.BUILD_NUMBER}"
+                    echo "Setting project version to ${version}"
+                    
+                    // Update pom.xml version
+                    sh "mvn versions:set -DnewVersion=${version}"
+                    
+                    // Build with new version
+                    sh "mvn clean package"
+                }
             }
         }
+        stage('Deploy') {
+    steps {
+   sh "sudo cp /home/slave1/workspace/p_MultiBranch_Pipeline_feature-2/target/news-app.war  /opt/apache-tomcat-11.0.14/webapps/" 
+      echo "build deployed"
+    } 
+}
+        // 6.3: Push the artifacts to Jfrog repository
+stage('Push the artifacts into Jfrog Artifactory') {
+    steps {
+        script {
+            // Get the current date and time in the format: yyyy-MM-dd_HH-mm
+            def currentDate = new java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new Date())
 
-        stage('Deploy WAR to Tomcat') {
-            steps {
-                sh '''
-                    echo "=== Stopping Tomcat ==="
-                    sudo /opt/tomcat10/bin/shutdown.sh || true
+            // Define the target path with the timestamp
+            def targetPath = "NewsApp/${currentDate}/"
 
-                    echo "=== Removing old deployment ==="
-                    sudo rm -rf /opt/tomcat10/webapps/news-app
-                    sudo rm -f /opt/tomcat10/webapps/news-app.war
+            // Configure the Artifactory server
+            rtServer(
+                id: 'Artifactory',
+                url: 'https://trialyth1ui.jfrog.io/artifactory',
+                credentialsId: 'jfrog-credentials-id'   // must match Jenkins credentials
+            )
 
-                    echo "=== Deploying new WAR ==="
-                    sudo cp target/news-app.war /opt/tomcat10/webapps/
-
-                    echo "=== Starting Tomcat ==="
-                    sudo /opt/tomcat10/bin/startup.sh
-                '''
-            }
+            // Upload the artifact to JFrog Artifactory with the timestamped path
+            rtUpload(
+                serverId: 'Artifactory',
+                spec: """
+                {
+                    "files": [
+                        {
+                            "pattern": "*.war",
+                            "target": "${targetPath}"
+                        }
+                    ]
+                }
+                """
+            )
         }
     }
 
+
+}
+    }
     post {
-        success {
-            echo "Deployment completed successfully!"
-        }
-        failure {
-            echo "Deployment failed!"
-        }
+    success {
+        archiveArtifacts artifacts: 'target/*.war', fingerprint: true
     }
+}
+    
 }
